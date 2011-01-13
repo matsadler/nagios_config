@@ -33,9 +33,7 @@ class DefaultStreamTest < Test::Unit::TestCase
   end
   
   def test_name_and_value_with_leading_whitespace
-    assert_raise(Nagios::ParseError) do
-      @parser.stream_parse(" name=value\n")
-    end
+    assert_raise(Nagios::ParseError) {@parser.stream_parse(" name=value\n")}
   end
   
   def test_missing_assignment

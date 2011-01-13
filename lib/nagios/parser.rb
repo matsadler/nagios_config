@@ -4,8 +4,13 @@ require 'events'
 
 module Nagios
   class Parser
-    attr_accessor :scanner
+    attr_accessor :scanner, :state, :in_define
     include Events::Emitter
+    
+    def initialize
+      @state = :body
+      self.scanner = StringScanner.new("")
+    end
     
     def parse(string)
       root = Nagios::Config.new
@@ -43,50 +48,60 @@ module Nagios
       root
     end
     
-    def stream_parse(string)
-      self.scanner = StringScanner.new(string)
-      start
+    def stream_parse(file_or_string)
+      file_or_string.each_line do |line|
+        self << line
+      end
+    end
+    
+    def <<(string)
+      scanner << string
+      self.state = send(state)
     end
     
     private
-    def start
-      finish || comment && start || whitespace && start ||
-        trailing_comment && start || name && value && start ||
-        definition && start ||
-        (raise ParseError.new("unrecognised input"))
+    def body
+      empty_line || leading_whitespace || comment || definition || name || :body
+    end
+    alias start body
+    
+    def empty_line
+      whitespace = scanner.scan(/[ \t]*\n/)
+      if whitespace
+        emit(:whitespace, whitespace)
+        in_define ? definition_body : body
+      end
+    end
+    
+    def leading_whitespace
+      if scanner.scan(/[ \t]/)
+        raise ParseError.new("leading whitespace not allowed")
+      end
     end
     
     def comment
-      line_start = scanner.beginning_of_line?
       comment = scanner.scan(/#.*(\n|\Z)/)
-      if comment && line_start
+      if comment
         comment.slice!(0)
         comment.chomp!("\n")
         emit(:comment, comment)
-      elsif comment
-        raise ParseError.new("comment must be at start of line")
+        in_define ? definition_body : body
+      elsif scanner.check(/#/)
+        :comment
       end
-      comment
-    end
-    
-    def whitespace
-      whitespace = scanner.scan(/([ \t]*\n|[ \t]+)/)
-      if whitespace
-        emit(:whitespace, whitespace)
-      end
-      whitespace
     end
     
     def name
-      line_start = scanner.beginning_of_line?
       name = scanner.scan(/.+=/)
-      if name && line_start
+      if name
         name.chomp!("=")
         emit(:name, name)
-      elsif name
-        raise ParseError.new("name must be at start of line")
+        value
+      elsif scanner.scan(/.+(\n|\Z)/)
+        raise ParseError.new("expected variable definition")
+      elsif scanner.check(/.+/) && !scanner.check(/d(e(f(i(n(e?))?)?)?)?\Z/)
+        :name
       end
-      name
     end
     
     def value
@@ -94,93 +109,92 @@ module Nagios
       if value
         value.chomp!("\n")
         emit(:value, value)
-      else
+        body
+      elsif scanner.scan(/\n|\Z/)
         raise ParseError.new("value expected")
+      else
+        :value
       end
-      value
     end
     
     def definition
       if scanner.skip(/define[ \t]/)
         emit(:begin_define)
+        self.in_define = true
         type
       end
     end
     
     def type
-      type = scanner.scan(/[^;{]+[ \t]*\{/)
+      type = scanner.scan(/[^;{]+[ \t]*\{[ \t]*\n/)
       if type
         type.strip!
         type.chomp!("{")
         type.strip!
         emit(:type, type)
-        definition_body if newline
+        definition_body
+      elsif scanner.check(/[^;{]+[ \t]*(\{[ \t]*)?\Z/)
+        :type
       else
         raise ParseError.new("type expected")
       end
     end
     
     def definition_body
-      finish_definition || whitespace && definition_body ||
-        comment && definition_body || trailing_comment && definition_body ||
-        definition_name && definition_value && definition_body ||
-        (raise ParseError.new("} expected"))
+      finish_definition || empty_line || comment || definition_name || :definition_body
     end
     
     def definition_name
-      name = scanner.scan(/[^\s;}]+/)
+      name = scanner.scan(/[ \t]*[^\s;]+[ \t]+/)
       if name
         name.strip!
         emit(:name, name)
+        definition_value
+      elsif scanner.check(/[ \t]*[^\s;]+\Z/)
+        :definition_name
+      elsif scanner.scan(/[ \t]*[^\s;]+\n/)
+        raise ParseError.new("value expected")
       end
-      name
     end
     
     def definition_value
-      value = scanner.scan(/[ \t]+[^\s;}]+/)
+      value = scanner.scan(/[ \t]*[^\s;]+(?=(\s|;))/)
       if value
         value.strip!
         emit(:value, value)
-        newline
-      else
+        after_value
+      elsif scanner.check(/[ \t]*[^\s;]+/)
+        :definition_value
+      elsif scanner.scan(/[ \t]*(;|\n|\Z)/)
         raise ParseError.new("value expected")
       end
-      value
+    end
+    
+    def after_value
+      if scanner.skip(/[ \t]*\n/) || trailing_comment
+        definition_body
+      else
+        :after_value
+      end
     end
     
     def finish_definition
-      line_start = scanner.beginning_of_line?
-      teminator = scanner.scan(/\}/)
-      if teminator && line_start
+      if scanner.scan(/[ \t]*\}[ \t]*(\n|\Z)/)
         emit(:finish_define)
-        true
-      elsif teminator
-        raise ParseError.new("} must be at start of line")
+        self.in_define = false
+        body
       end
     end
     
     def trailing_comment
-      event = scanner.beginning_of_line? ? :comment : :trailing_comment
-      comment = scanner.scan(/;.*\n/)
-      if comment
-        comment.chomp!("\n")
-        comment.slice!(0)
-        emit(event, comment)
+      trailing_comment = scanner.scan(/[ \t]*;.*\n/)
+      if trailing_comment
+        trailing_comment.strip!
+        trailing_comment.chomp!("\n")
+        trailing_comment.slice!(0)
+        emit(:trailing_comment, trailing_comment)
       end
-      comment
-    end
-    
-    def finish
-      scanner.eos?
-    end
-    
-    def newline
-      linebreak = scanner.skip(/[ \t]*\n/) || (whitespace || true) && trailing_comment
-      if linebreak
-        true
-      else
-        raise ParseError.new("newline expected")
-      end
+      trailing_comment
     end
     
   end

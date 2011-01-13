@@ -27,17 +27,9 @@ class TemplateStreamTest < Test::Unit::TestCase
     calls = 0
     @parser.on(:begin_define) {calls += 1}
     
-    @parser.stream_parse("define host{\n}\ndefine host{\n}")
+    @parser.stream_parse("define host{\n}\n\ndefine host{\n}")
     
     assert_equal(2, calls)
-  end
-  
-  def test_illigal_whitespace_before_close_define
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("define host{\n  }")}
-  end
-  
-  def test_uncloses_define
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("define host{\n")}
   end
   
   def test_name_value_in_define
