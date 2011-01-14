@@ -20,6 +20,18 @@ class DefaultStreamTest < Test::Unit::TestCase
     assert_equal("bar", value)
   end
   
+  def test_value_can_contain_whitespace
+    name = nil
+    value = nil
+    @parser.on(:name) {|n| name = n}
+    @parser.on(:value) {|v| value = v}
+    
+    @parser.stream_parse("string=something with spaces in\n")
+    
+    assert_equal("string", name)
+    assert_equal("something with spaces in", value)
+  end
+  
   def test_name_and_value_terminated_by_end_of_file
     name = nil
     value = nil

@@ -1,18 +1,20 @@
 require 'strscan'
+require 'stringio'
 require 'rubygems'
 require 'events'
 
 module Nagios
   class Parser
-    attr_accessor :scanner, :state, :in_define
+    attr_accessor :scanner, :state, :in_define, :value_buffer
     include Events::Emitter
     
     def initialize
       @state = :body
       self.scanner = StringScanner.new("")
+      self.value_buffer = ""
     end
     
-    def parse(string)
+    def parse(io)
       root = Nagios::Config.new
       current_define = nil
       current_variable = nil
@@ -44,17 +46,20 @@ module Nagios
       on(:finish_define) do
         current_define = nil
       end
-      stream_parse(string)
+      stream_parse(io)
       root
     end
     
-    def stream_parse(file_or_string)
-      file_or_string.each_line do |line|
-        self << line
+    def stream_parse(io)
+      io = StringIO.new(io) unless io.respond_to?(:read)
+      until io.eof?
+        self << io.read(1024 * 16)
       end
     end
     
     def <<(string)
+      scanner.string.replace(scanner.rest)
+      scanner.reset
       scanner << string
       self.state = send(state)
     end
@@ -70,18 +75,22 @@ module Nagios
       if whitespace
         emit(:whitespace, whitespace)
         in_define ? definition_body : body
+      elsif in_define && whitespace = scanner.scan(/[ \t]*(?=;)/) && trailing_comment
+        emit(:whitespace, whitespace)
+        definition_body
       end
     end
     
     def leading_whitespace
-      if scanner.scan(/[ \t]/)
+      if scanner.scan(/[ \t]+[^\s]/)
         raise ParseError.new("leading whitespace not allowed")
       end
     end
     
     def comment
-      comment = scanner.scan(/#.*(\n|\Z)/)
+      comment = scanner.scan(/[ \t]*#.*(\n)/)
       if comment
+        comment.lstrip!
         comment.slice!(0)
         comment.chomp!("\n")
         emit(:comment, comment)
@@ -92,26 +101,30 @@ module Nagios
     end
     
     def name
-      name = scanner.scan(/.+=/)
+      name = scanner.scan(/[^\s=]+=/)
       if name
         name.chomp!("=")
         emit(:name, name)
         value
-      elsif scanner.scan(/.+(\n|\Z)/)
+      elsif scanner.scan(/.+\n/)
         raise ParseError.new("expected variable definition")
-      elsif scanner.check(/.+/) && !scanner.check(/d(e(f(i(n(e?))?)?)?)?\Z/)
+      elsif scanner.check(/[^\s]+/) && !scanner.check(/d(e(f(i(n(e?))?)?)?)?\Z/)
         :name
       end
     end
     
     def value
-      value = scanner.scan(/.+(\n|\Z)/)
+      value = scanner.scan(/.+\n/)
       if value
+        value = value_buffer + value
         value.chomp!("\n")
+        raise ParseError.new("value expected") if value.empty?
         emit(:value, value)
+        self.value_buffer = ""
         body
-      elsif scanner.scan(/\n|\Z/)
-        raise ParseError.new("value expected")
+      elsif value = scanner.scan(/.+/)
+        value_buffer << value
+        :value
       else
         :value
       end
@@ -133,7 +146,7 @@ module Nagios
         type.strip!
         emit(:type, type)
         definition_body
-      elsif scanner.check(/[^;{]+[ \t]*(\{[ \t]*)?\Z/)
+      elsif scanner.check(/([^;{]+[ \t]*(\{[ \t]*)?)?\Z/)
         :type
       else
         raise ParseError.new("type expected")
@@ -145,28 +158,32 @@ module Nagios
     end
     
     def definition_name
-      name = scanner.scan(/[ \t]*[^\s;]+[ \t]+/)
+      name = scanner.scan(/[ \t]*[^\s;#]+[ \t]+/)
       if name
         name.strip!
         emit(:name, name)
         definition_value
-      elsif scanner.check(/[ \t]*[^\s;]+\Z/)
+      elsif scanner.check(/[ \t]*[^\s#;}]+\Z/)
         :definition_name
-      elsif scanner.scan(/[ \t]*[^\s;]+\n/)
+      elsif scanner.scan(/[ \t]*[^\s#;]+\n/)
         raise ParseError.new("value expected")
       end
     end
     
     def definition_value
-      value = scanner.scan(/[ \t]*[^\s;]+(?=(\s|;))/)
+      value = scanner.scan(/[^\n;#]*(?=(\n|;))/)
       if value
+        value = value_buffer + value
         value.strip!
+        raise ParseError.new("value expected") if value.empty?
         emit(:value, value)
+        self.value_buffer = ""
         after_value
-      elsif scanner.check(/[ \t]*[^\s;]+/)
+      elsif value = scanner.scan(/[^\n;#]+/)
+        value_buffer << value
         :definition_value
-      elsif scanner.scan(/[ \t]*(;|\n|\Z)/)
-        raise ParseError.new("value expected")
+      else
+        :definition_value
       end
     end
     
@@ -179,7 +196,7 @@ module Nagios
     end
     
     def finish_definition
-      if scanner.scan(/[ \t]*\}[ \t]*(\n|\Z)/)
+      if scanner.scan(/[ \t]*\}[ \t]*\n/)
         emit(:finish_define)
         self.in_define = false
         body

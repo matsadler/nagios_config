@@ -48,6 +48,23 @@ class TemplateStreamTest < Test::Unit::TestCase
     assert(finish_define_called, "finish callback not called")
   end
   
+  def test_value_can_contain_whitespace
+    name = nil
+    value = nil
+    finish_define_called = false
+    @parser.on(:name) {|n| name = n}
+    @parser.on(:value) {|v| value = v}
+    @parser.on(:finish_define) {finish_define_called = true}
+    
+    @parser.stream_parse("define host{
+    text   some whitespace containing text
+}")
+    
+    assert_equal("text", name)
+    assert_equal("some whitespace containing text", value)
+    assert(finish_define_called, "finish callback not called")
+  end
+  
   def test_define_can_contain_whitespace
     names = []
     values = []
