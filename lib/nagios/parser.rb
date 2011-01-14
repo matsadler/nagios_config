@@ -53,7 +53,7 @@ module Nagios
     def stream_parse(io)
       io = StringIO.new(io) unless io.respond_to?(:read)
       until io.eof?
-        self << io.read(1024 * 16)
+        self << io.read(1024)
       end
     end
     
