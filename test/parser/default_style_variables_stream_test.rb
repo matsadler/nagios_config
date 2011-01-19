@@ -2,7 +2,7 @@ base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
 require base + '/nagios'
 require 'test/unit'
 
-class DefaultStreamTest < Test::Unit::TestCase
+class DefaultStyleVariablesStreamTest < Test::Unit::TestCase
   
   def setup
     @parser = Nagios::Parser.new
@@ -30,18 +30,6 @@ class DefaultStreamTest < Test::Unit::TestCase
     
     assert_equal("string", name)
     assert_equal("something with spaces in", value)
-  end
-  
-  def test_name_and_value_terminated_by_end_of_file
-    name = nil
-    value = nil
-    @parser.on(:name) {|n| name = n}
-    @parser.on(:value) {|v| value = v}
-    
-    @parser.stream_parse("baz=qux")
-    
-    assert_equal("baz", name)
-    assert_equal("qux", value)
   end
   
   def test_name_and_value_with_leading_whitespace

@@ -2,7 +2,7 @@ base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
 require base + '/nagios'
 require 'test/unit'
 
-class TemplateStreamTest < Test::Unit::TestCase
+class DefineStreamTest < Test::Unit::TestCase
   
   def setup
     @parser = Nagios::Parser.new
@@ -16,7 +16,7 @@ class TemplateStreamTest < Test::Unit::TestCase
     @parser.on(:type) {|t| type = t}
     @parser.on(:finish_define) {finish_define_called = true}
     
-    @parser.stream_parse("define host{\n}")
+    @parser.stream_parse("define host{\n}\n")
     
     assert(begin_define_called, "begin callback not called")
     assert_equal("host", type)
@@ -27,7 +27,7 @@ class TemplateStreamTest < Test::Unit::TestCase
     calls = 0
     @parser.on(:begin_define) {calls += 1}
     
-    @parser.stream_parse("define host{\n}\n\ndefine host{\n}")
+    @parser.stream_parse("define host{\n}\n\ndefine host{\n}\n")
     
     assert_equal(2, calls)
   end
@@ -42,7 +42,7 @@ class TemplateStreamTest < Test::Unit::TestCase
     
     @parser.stream_parse("define host{
     foo   bar
-}")
+}\n")
     assert_equal("foo", name)
     assert_equal("bar", value)
     assert(finish_define_called, "finish callback not called")
@@ -58,7 +58,7 @@ class TemplateStreamTest < Test::Unit::TestCase
     
     @parser.stream_parse("define host{
     text   some whitespace containing text
-}")
+}\n")
     
     assert_equal("text", name)
     assert_equal("some whitespace containing text", value)

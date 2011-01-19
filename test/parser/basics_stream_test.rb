@@ -17,15 +17,6 @@ class BasicsStreamTest < Test::Unit::TestCase
     assert_equal(" foo", comment)
   end
   
-  def test_comment_terminated_by_end_of_file
-    comment = nil
-    @parser.on(:comment) {|c| comment = c}
-    
-    @parser.stream_parse("# bar")
-    
-    assert_equal(" bar", comment)
-  end
-  
   def test_comment_with_leading_whitespace
     assert_raise(Nagios::ParseError) do
       @parser.stream_parse(" # foo\n")
