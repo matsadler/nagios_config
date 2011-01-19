@@ -1,4 +1,15 @@
 module Nagios
+  
+  # Usage:
+  #   conf = Nagios::ConfigBuilder.new
+  #   
+  #   conf.foo = "bar"
+  #   conf.define("test") do |test|
+  #     test.a = "b"
+  #     test.a.comment("foo")
+  #   end
+  #   
+  #   puts conf
   class ConfigBuilder
     attr_accessor :root
     
