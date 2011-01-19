@@ -1,11 +1,11 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class DefineStreamTest < Test::Unit::TestCase
   
   def setup
-    @parser = Nagios::Parser.new
+    @parser = NagiosConfig::Parser.new
   end
   
   def test_empty_define
@@ -103,15 +103,15 @@ class DefineStreamTest < Test::Unit::TestCase
   end
   
   def test_start_define_must_be_treminated_by_newline
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("define host{foo bar\n}")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse("define host{foo bar\n}")}
   end
   
   def test_start_define_without_type
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("define {\n}")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse("define {\n}")}
   end
   
   def test_name_with_missing_value_in_define
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("define host{\nfoo\n}")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse("define host{\nfoo\n}")}
   end
   
   def test_define_can_contain_trailing_comment

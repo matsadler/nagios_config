@@ -1,7 +1,7 @@
-module Nagios
+module NagiosConfig
   
   # Usage:
-  #   conf = Nagios::Builder.new
+  #   conf = NagiosConfig::Builder.new
   #   
   #   conf.foo = "bar"
   #   conf.define("test") do |test|
@@ -13,7 +13,7 @@ module Nagios
   class Builder
     attr_accessor :root
     
-    def initialize(root=Nagios::Config.new)
+    def initialize(root=NagiosConfig::Config.new)
       self.root = root
     end
     
@@ -30,24 +30,24 @@ module Nagios
     end
     
     def define(type)
-      raise "can't define in a define" if root.is_a?(Nagios::Define)
-      define = Nagios::Define.new
-      define.add_node(Nagios::Type.new(type.to_s))
+      raise "can't define in a define" if root.is_a?(NagiosConfig::Define)
+      define = NagiosConfig::Define.new
+      define.add_node(NagiosConfig::Type.new(type.to_s))
       root.add_node(define)
       yield self.class.new(define)
       define
     end
     
     def break
-      root.add_node(Nagios::Whitespace.new("\n"))
+      root.add_node(NagiosConfig::Whitespace.new("\n"))
     end
     
     def comment(string)
-      root.add_node(Nagios::Comment.new(string))
+      root.add_node(NagiosConfig::Comment.new(string))
     end
     
     def to_s
-      Nagios::Formater.new.format(root)
+      NagiosConfig::Formater.new.format(root)
     end
     
     def method_missing(name, *args)
@@ -63,16 +63,16 @@ module Nagios
     private
     def get_variable_named(name)
       root.nodes.find do |node|
-        node.is_a?(Nagios::Variable) && node.name.value == name.to_s
+        node.is_a?(NagiosConfig::Variable) && node.name.value == name.to_s
       end
     end
     
     def set_variable_named(name, value)
       var = get_variable_named(name)
       if !var && !value.nil?
-        var = Nagios::Variable.new
-        var.add_node(Nagios::Name.new(name))
-        var.add_node(Nagios::Value.new)
+        var = NagiosConfig::Variable.new
+        var.add_node(NagiosConfig::Name.new(name))
+        var.add_node(NagiosConfig::Value.new)
         root.add_node(var)
       end
       if value.nil?
@@ -90,7 +90,7 @@ module Nagios
     def extend(value, parent)
       metaclass = class << value; self; end
       metaclass.send(:define_method, :comment) do |string|
-        parent.add_node(Nagios::TrailingComment.new(string))
+        parent.add_node(NagiosConfig::TrailingComment.new(string))
       end
       value
     end

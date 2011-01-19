@@ -1,11 +1,11 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class DefaultStyleVariablesStreamTest < Test::Unit::TestCase
   
   def setup
-    @parser = Nagios::Parser.new
+    @parser = NagiosConfig::Parser.new
   end
   
   def test_name_and_value
@@ -33,15 +33,15 @@ class DefaultStyleVariablesStreamTest < Test::Unit::TestCase
   end
   
   def test_name_and_value_with_leading_whitespace
-    assert_raise(Nagios::ParseError) {@parser.stream_parse(" name=value\n")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse(" name=value\n")}
   end
   
   def test_missing_assignment
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("name\n")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse("name\n")}
   end
   
   def test_missing_value
-    assert_raise(Nagios::ParseError) {@parser.stream_parse("foo=\n")}
+    assert_raise(NagiosConfig::ParseError) {@parser.stream_parse("foo=\n")}
   end
   
   def test_comment_whitespace_name_value

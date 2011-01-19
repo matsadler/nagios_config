@@ -1,11 +1,11 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class ReentranceTest < Test::Unit::TestCase
   
   def setup
-    @parser = Nagios::Parser.new
+    @parser = NagiosConfig::Parser.new
     
     # super inconstantly formatted config file
     @config = "
@@ -44,7 +44,7 @@ define host	{
   
   def test_reentrance
     1.upto(@config.length) do |i|
-      @parser = Nagios::Parser.new
+      @parser = NagiosConfig::Parser.new
       stream = []
       
       @parser.on(:whitespace) {|value| stream.push([:whitespace, value])}

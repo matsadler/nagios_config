@@ -1,11 +1,11 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class BasicsStreamTest < Test::Unit::TestCase
   
   def setup
-    @parser = Nagios::Parser.new
+    @parser = NagiosConfig::Parser.new
   end
   
   def test_comment
@@ -18,7 +18,7 @@ class BasicsStreamTest < Test::Unit::TestCase
   end
   
   def test_comment_with_leading_whitespace
-    assert_raise(Nagios::ParseError) do
+    assert_raise(NagiosConfig::ParseError) do
       @parser.stream_parse(" # foo\n")
     end
   end

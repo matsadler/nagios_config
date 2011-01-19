@@ -1,4 +1,4 @@
-module Nagios
+module NagiosConfig
   class Formater
     attr_accessor :buffer, :in_define, :define_indent, :define_name_width, :define_variable_width
     
@@ -11,7 +11,7 @@ module Nagios
     
     def format(root)
       root.nodes.each do |node|
-        op = "format_#{node.class.name.sub(/^Nagios::/, "").gsub(/::/, "_")}"
+        op = "format_#{node.class.name.sub(/^NagiosConfig::/, "").gsub(/::/, "_")}"
         send(op, node)
       end
       buffer

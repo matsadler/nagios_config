@@ -1,12 +1,12 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class FormaterTest < Test::Unit::TestCase
   
   def setup
-    @builder = Nagios::Builder.new
-    @formater = Nagios::Formater.new
+    @builder = NagiosConfig::Builder.new
+    @formater = NagiosConfig::Formater.new
   end
   
   def test_comment
@@ -37,8 +37,8 @@ class FormaterTest < Test::Unit::TestCase
   end
   
   def test_whitespace
-    root = Nagios::Config.new
-    root.add_node(Nagios::Whitespace.new("  	\n"))
+    root = NagiosConfig::Config.new
+    root.add_node(NagiosConfig::Whitespace.new("  	\n"))
     
     assert_equal("  	\n", @formater.format(root))
   end

@@ -1,4 +1,4 @@
-module Nagios
+module NagiosConfig
   class Node
     attr_accessor :nodes, :value
     
@@ -38,7 +38,7 @@ module Nagios
       nodes(name, nil, klass)
     end
     
-    def self.generate_node_type(name, klass=Nagios::Node)
+    def self.generate_node_type(name, klass=NagiosConfig::Node)
       subclass = Class.new(klass)
       const_set(name.to_s.capitalize, subclass)
       subclass

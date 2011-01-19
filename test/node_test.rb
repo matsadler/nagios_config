@@ -1,13 +1,13 @@
 base = File.expand_path(File.dirname(__FILE__) + '/../lib')
-require base + '/nagios'
+require base + '/nagios_config'
 require 'test/unit'
 
 class NodeTest < Test::Unit::TestCase
   
   # Generate a new subclass for each test to avoid class ivars persisting
   def setup
-    @node_class = Class.new(Nagios::Node)
-    @other_node_class = Class.new(Nagios::Node)
+    @node_class = Class.new(NagiosConfig::Node)
+    @other_node_class = Class.new(NagiosConfig::Node)
   end
   
   def test_default_allow_nothing
@@ -65,7 +65,7 @@ class NodeTest < Test::Unit::TestCase
     
     assert(@node_class.constants.map(&:to_s).include?("Example"), "const not set")
     assert_kind_of(Class, @node_class::Example)
-    assert_equal(Nagios::Node, @node_class::Example.superclass)
+    assert_equal(NagiosConfig::Node, @node_class::Example.superclass)
   end
   
   def test_class_method_nodes_allows_subclass

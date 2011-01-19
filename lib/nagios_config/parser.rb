@@ -3,7 +3,7 @@ require 'stringio'
 require 'rubygems'
 require 'events'
 
-module Nagios
+module NagiosConfig
   class Parser
     attr_accessor :scanner, :state, :in_define, :value_buffer
     include Events::Emitter
@@ -15,33 +15,33 @@ module Nagios
     end
     
     def parse(io)
-      root = Nagios::Config.new
+      root = NagiosConfig::Config.new
       current_define = nil
       current_variable = nil
       on(:comment) do |comment|
-        (current_define || root).add_node(Nagios::Comment.new(comment))
+        (current_define || root).add_node(NagiosConfig::Comment.new(comment))
       end
       on(:whitespace) do |whitespace|
-        (current_define || root).add_node(Nagios::Whitespace.new(whitespace))
+        (current_define || root).add_node(NagiosConfig::Whitespace.new(whitespace))
       end
       on(:trailing_comment) do |comment|
-        (current_define || root).nodes.last.add_node(Nagios::TrailingComment.new(comment))
+        (current_define || root).nodes.last.add_node(NagiosConfig::TrailingComment.new(comment))
       end
       on(:name) do |name|
-        current_variable = Nagios::Variable.new
-        current_variable.add_node(Nagios::Name.new(name))
+        current_variable = NagiosConfig::Variable.new
+        current_variable.add_node(NagiosConfig::Name.new(name))
         (current_define || root).add_node(current_variable)
       end
       on(:value) do |value|
-        current_variable.add_node(Nagios::Value.new(value))
+        current_variable.add_node(NagiosConfig::Value.new(value))
         current_variable = nil
       end
       on(:begin_define) do
-        current_define = Nagios::Define.new
+        current_define = NagiosConfig::Define.new
         root.add_node(current_define)
       end
       on(:type) do |type|
-        current_define.add_node(Nagios::Type.new(type))
+        current_define.add_node(NagiosConfig::Type.new(type))
       end
       on(:finish_define) do
         current_define = nil
