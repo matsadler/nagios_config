@@ -5,7 +5,7 @@ require 'test/unit'
 class FormaterTest < Test::Unit::TestCase
   
   def setup
-    @builder = Nagios::ConfigBuilder.new
+    @builder = Nagios::Builder.new
     @formater = Nagios::Formater.new
   end
   

@@ -1,7 +1,7 @@
 module Nagios
   
   # Usage:
-  #   conf = Nagios::ConfigBuilder.new
+  #   conf = Nagios::Builder.new
   #   
   #   conf.foo = "bar"
   #   conf.define("test") do |test|
@@ -10,7 +10,7 @@ module Nagios
   #   end
   #   
   #   puts conf
-  class ConfigBuilder
+  class Builder
     attr_accessor :root
     
     def initialize(root=Nagios::Config.new)

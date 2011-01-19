@@ -2,10 +2,10 @@ base = File.expand_path(File.dirname(__FILE__) + '/../lib')
 require base + '/nagios'
 require 'test/unit'
 
-class ConfigBuilderTest < Test::Unit::TestCase
+class BuilderTest < Test::Unit::TestCase
   
   def setup
-    @builder = Nagios::ConfigBuilder.new
+    @builder = Nagios::Builder.new
   end
   
   def test_comment
