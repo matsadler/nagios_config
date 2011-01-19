@@ -114,7 +114,7 @@ module Nagios
     end
     
     def value
-      value = scanner.scan(/.+\n/)
+      value = scanner.scan(/.*\n/)
       if value
         value = value_buffer + value
         value.chomp!("\n")
