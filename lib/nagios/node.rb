@@ -70,5 +70,13 @@ module Nagios
       end
     end
     
+    def insert_before(position_node, node)
+      nodes.insert(nodes.index(position_node), node)
+    end
+    
+    def insert_after(position_node, node)
+      nodes.insert(nodes.index(position_node) + 1, node)
+    end
+    
   end
 end
