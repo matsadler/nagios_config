@@ -123,4 +123,112 @@ class NodeTest < Test::Unit::TestCase
     assert_equal([child], node.nodes)
   end
   
+  def test_after
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child2)
+    node.add_node(child3)
+    
+    assert_equal(child2, node.after(child1))
+  end
+  
+  def test_after_on_last_node
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child2)
+    node.add_node(child3)
+    
+    assert_equal(nil, node.after(child3))
+  end
+  
+  def test_before
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child2)
+    node.add_node(child3)
+    
+    assert_equal(child2, node.before(child3))
+  end
+  
+  def test_before_on_first_node
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child2)
+    node.add_node(child3)
+    
+    assert_equal(nil, node.before(child1))
+  end
+  
+  def test_insert_after
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child3)
+    
+    node.insert_after(child1, child2)
+    
+    assert_equal([child1, child2, child3], node.nodes)
+  end
+  
+  def test_insert_after_on_last_node
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child3)
+    
+    node.insert_after(child3, child2)
+    
+    assert_equal([child1, child3, child2], node.nodes)
+  end
+  
+  def test_insert_before
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child3)
+    
+    node.insert_before(child3, child2)
+    
+    assert_equal([child1, child2, child3], node.nodes)
+  end
+  
+  def test_insert_before_on_first_node
+    @node_class.nodes(:example)
+    node = @node_class.new
+    child1 = @node_class::Example.new
+    child2 = @node_class::Example.new
+    child3 = @node_class::Example.new
+    node.add_node(child1)
+    node.add_node(child3)
+    
+    node.insert_before(child1, child2)
+    
+    assert_equal([child2, child1, child3], node.nodes)
+  end
+  
 end
