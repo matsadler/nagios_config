@@ -10,13 +10,6 @@ module Nagios
     end
     
     def format(root)
-      root.whitespace.each do |whitespace|
-        if whitespace.value !~ /\n/
-          before = root.before(whitespace)
-          before.trailing_comment = whitespace.trailing_comment if before.respond_to?(:trailing_comment)
-          root.remove_node(whitespace)
-        end
-      end
       root.nodes.each do |node|
         op = "format_#{node.class.name.sub(/^Nagios::/, "").gsub(/::/, "_")}"
         send(op, node)
@@ -32,7 +25,7 @@ module Nagios
     end
     
     def format_Whitespace(whitespace)
-      buffer << "\n"
+      buffer << whitespace.value
     end
     
     def format_Variable(variable)
