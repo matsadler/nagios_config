@@ -1,0 +1,39 @@
+= NagiosConfig
+
+NagiosConfig provides tools to parse, manipulate, generate and output Nagios configuration files using Ruby.
+
+== NagiosConfig::Parser
+
+NagiosConfig::Parser will parse both the object and main style Nagios configuration files, and has both a streaming API and the ability to produce a AST/DOM-like structure.
+
+== NagiosConfig::Builder
+
+NagiosConfig::Builder is a simple DSL for generating Nagios config files using Ruby
+
+== NagiosConfig::Formater
+
+NagiosConfig::Formater will take the data structures produced by the parser and builder and output them in the format of a Nagios config file.
+
+== Making changes to a config file
+
+Say for example you decided you want all your host names uppercase
+
+  require 'rubygems'
+  require 'nagios_config'
+  
+  host_config = nil
+  File.open("hosts.cfg") do |f|
+    host_config = NagiosConfig::Parser.new.parse(f)
+  end
+  
+  host_config.defines do |node|
+    if node.type.value == "host"
+      variable = node.variables.find {|node| node.name.value == "hostname"}
+      variable.val.value.upcase! if variable
+    end
+  end
+  
+  File.open("hosts.cfg", "w") do |f|
+    NagiosConfig::Formatter.new(f).format(host_config)
+  end
+
