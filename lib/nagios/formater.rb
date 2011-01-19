@@ -2,8 +2,8 @@ module Nagios
   class Formater
     attr_accessor :buffer, :in_define, :define_indent, :define_name_width, :define_variable_width
     
-    def initialize
-      self.buffer = ""
+    def initialize(buffer="")
+      self.buffer = buffer
       self.define_indent = 2
       self.define_name_width = 2
       self.define_variable_width = 2
@@ -30,15 +30,15 @@ module Nagios
     
     def format_Variable(variable)
       if in_define
-        format = "#{" " * define_indent}%-#{define_name_width}s%s\n"
+        format = "#{" " * define_indent}%-#{define_name_width}s%s"
       else
-        format = "%s=%s\n"
+        format = "%s=%s"
       end
       var_string = format % [variable.name.value, variable.val.value]
       if variable.trailing_comment
-        var_string = "%-#{define_variable_width}s;%s\n" % [var_string.chomp("\n"), variable.trailing_comment.value]
+        var_string = "%-#{define_variable_width}s;%s" % [var_string, variable.trailing_comment.value]
       end
-      buffer << var_string
+      buffer << var_string << "\n"
     end
     
     def format_Define(define)
