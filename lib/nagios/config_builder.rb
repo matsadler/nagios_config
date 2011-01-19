@@ -35,6 +35,10 @@ module Nagios
       root.add_node(Nagios::Comment.new(string))
     end
     
+    def to_s
+      Nagios::Formater.new.format(root)
+    end
+    
     def method_missing(name, *args)
       if name.to_s =~ /=$/ && args.length == 1
         self[name.to_s.chomp("=")] = args.first
