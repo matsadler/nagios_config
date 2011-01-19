@@ -69,21 +69,20 @@ module Nagios
     
     def set_variable_named(name, value)
       var = get_variable_named(name)
-      if var && value.nil?
-        root.remove_node(var)
-      elsif var && value.is_a?(Nagios::Variable)
-        var.val = value.val
-      elsif var && value == true
-        var.val.value = "1"
-      elsif var && value == false
-        var.val.value = "0"
-      elsif var
-        var.val.value = value.to_s
-      else
+      if !var && !value.nil?
         var = Nagios::Variable.new
         var.add_node(Nagios::Name.new(name))
-        var.add_node(Nagios::Value.new(value))
+        var.add_node(Nagios::Value.new)
         root.add_node(var)
+      end
+      if value.nil?
+        root.remove_node(var)
+      elsif value == true
+        var.val.value = "1"
+      elsif value == false
+        var.val.value = "0"
+      else
+        var.val.value = value.to_s
       end
       var
     end

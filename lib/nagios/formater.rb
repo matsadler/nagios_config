@@ -43,8 +43,8 @@ module Nagios
     
     def format_Define(define)
       buffer << "define "
-      name_width = define.variables.map(&:name).map(&:value).map(&:length).max
-      value_width = define.variables.map(&:val).map(&:value).map(&:length).max
+      name_width = define.variables.map(&:name).map(&:value).map(&:length).max || 0
+      value_width = define.variables.map(&:val).map(&:value).map(&:length).max || 0
       variable_width = define_indent + define_name_width + name_width + value_width
       
       self.define_name_width += name_width
