@@ -15,6 +15,14 @@ class FormaterTest < Test::Unit::TestCase
     assert_equal("#foo\n", @formater.format(@builder.root))
   end
   
+  def test_blank_line_comment
+    @builder.comment("foo")
+    @builder.comment("")
+    @builder.comment("bar")
+    
+    assert_equal("#foo\n#\n#bar\n", @formater.format(@builder.root))
+  end
+  
   def test_variable
     @builder.key = "value"
     

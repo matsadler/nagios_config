@@ -23,6 +23,15 @@ class BasicsStreamTest < Test::Unit::TestCase
     end
   end
   
+  def test_blank_line_comment
+    comments = []
+    @parser.on(:comment) {|c| comments.push(c)}
+    
+    @parser.stream_parse("# foo\n#\n# bar\n")
+    
+    assert_equal([" foo", "", " bar"], comments)
+  end
+  
   def test_space_is_whitespace
     called = false
     whitespace = nil

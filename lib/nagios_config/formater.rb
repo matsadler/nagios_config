@@ -19,9 +19,13 @@ module NagiosConfig
     alias format_Config format
     
     def format_Comment(comment)
-      buffer << comment.value.split(/\n/).map do |comment|
-        "##{comment}\n"
-      end.join
+      if comment.value.empty?
+        buffer << "#\n"
+      else
+        buffer << comment.value.split(/\n/).map do |comment|
+          "##{comment}\n"
+        end.join
+      end
     end
     
     def format_Whitespace(whitespace)
