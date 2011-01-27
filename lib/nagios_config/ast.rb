@@ -29,14 +29,14 @@ module NagiosConfig
     node :type, NagiosConfig::Type
     node :comment, NagiosConfig::Comment
     node :trailing_comment, NagiosConfig::TrailingComment
-    nodes :whitespace, :whitespace, NagiosConfig::Whitespace
-    nodes :variable, :variables, NagiosConfig::Variable
+    nodes :whitespace, NagiosConfig::Whitespace
+    nodes :variables, NagiosConfig::Variable
   end
   
   class Config < Node
     node :comment, NagiosConfig::Comment
-    nodes :whitespace, :whitespace, NagiosConfig::Whitespace
-    nodes :variable, :variables, NagiosConfig::Variable
-    nodes :define, :defines, NagiosConfig::Define
+    nodes :whitespace, NagiosConfig::Whitespace
+    nodes :variables, NagiosConfig::Variable
+    nodes :defines, NagiosConfig::Define
   end
 end

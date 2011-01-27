@@ -59,40 +59,32 @@ class NodeTest < Test::Unit::TestCase
     assert_equal([child2], parent.nodes)
   end
   
-  def test_class_method_nodes_creates_subclass
-    flunk if @node_class.constants.map(&:to_s).include?("Example")
-    @node_class.nodes(:example)
-    
-    assert(@node_class.constants.map(&:to_s).include?("Example"), "const not set")
-    assert_kind_of(Class, @node_class::Example)
-    assert_equal(NagiosConfig::Node, @node_class::Example.superclass)
-  end
-  
-  def test_class_method_nodes_allows_subclass
-    @node_class.nodes(:example)
+  def test_class_method_nodes_allows_child
+    @node_class.nodes(:examples, @other_node_class)
     parent = @node_class.new
-    child = @node_class::Example.new
+    child = @other_node_class.new
     
-    assert_equal([@node_class::Example], @node_class.allow)
+    assert_equal([@other_node_class], @node_class.allow)
     assert(parent.allow?(child), "child should be allowed")
   end
   
   def test_class_method_nodes_creates_accessors
     flunk if @node_class.instance_methods.include?("examples")
     flunk if @node_class.instance_methods.include?("add_example")
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     
     assert(@node_class.instance_methods.map(&:to_s).include?("examples"), "method missing")
     assert(@node_class.instance_methods.map(&:to_s).include?("add_example"), "method missing")
   end
   
   def test_generated_nodes_accessors
-    @node_class.nodes(:example)
-    @node_class.nodes(:test)
+    other_other_node_class = Class.new(NagiosConfig::Node)
+    @node_class.nodes(:examples, @other_node_class)
+    @node_class.nodes(:tests, other_other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Test.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = other_other_node_class.new
     
     assert_nothing_raised {node.add_example(child1)}
     assert_nothing_raised {node.add_example(child2)}
@@ -106,16 +98,16 @@ class NodeTest < Test::Unit::TestCase
   def test_class_method_node_creates_accessors
     flunk if @node_class.instance_methods.include?("example")
     flunk if @node_class.instance_methods.include?("example=")
-    @node_class.node(:example)
+    @node_class.node(:example, @other_node_class)
     
     assert(@node_class.instance_methods.map(&:to_s).include?("example"), "method missing")
     assert(@node_class.instance_methods.map(&:to_s).include?("example="), "method missing")
   end
   
   def test_generated_node_accessors
-    @node_class.node(:example)
+    @node_class.node(:example, @other_node_class)
     node = @node_class.new
-    child = @node_class::Example.new
+    child = @other_node_class.new
     
     assert_nothing_raised {node.example = child}
     
@@ -124,11 +116,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_after
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child2)
     node.add_node(child3)
@@ -137,11 +129,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_after_on_last_node
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child2)
     node.add_node(child3)
@@ -150,11 +142,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_before
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child2)
     node.add_node(child3)
@@ -163,11 +155,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_before_on_first_node
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child2)
     node.add_node(child3)
@@ -176,11 +168,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_insert_after
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child3)
     
@@ -190,11 +182,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_insert_after_on_last_node
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child3)
     
@@ -204,11 +196,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_insert_before
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child3)
     
@@ -218,11 +210,11 @@ class NodeTest < Test::Unit::TestCase
   end
   
   def test_insert_before_on_first_node
-    @node_class.nodes(:example)
+    @node_class.nodes(:examples, @other_node_class)
     node = @node_class.new
-    child1 = @node_class::Example.new
-    child2 = @node_class::Example.new
-    child3 = @node_class::Example.new
+    child1 = @other_node_class.new
+    child2 = @other_node_class.new
+    child3 = @other_node_class.new
     node.add_node(child1)
     node.add_node(child3)
     

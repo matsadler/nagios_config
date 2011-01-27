@@ -15,33 +15,25 @@ module NagiosConfig
       end
     end
     
-    def self.nodes(name, plural="#{name}s", klass=generate_node_type(name))
-      if plural
-        define_method(plural) do
-          nodes.select {|n| n.is_a?(klass)}
-        end
-        alias_method :"add_#{name}", :add_node
-      else
-        define_method(name) do
-          nodes.find {|n| n.is_a?(klass)}
-        end
-        define_method("#{name}=") do |value|
-          remove_node(name)
-          add_node(value) if value
-        end
+    def self.nodes(name, klass, singular=name.to_s.chomp("s"))
+      define_method(name) do
+        nodes.select {|n| n.is_a?(klass)}
       end
+      alias_method :"add_#{singular}", :add_node
       allow(klass)
       yield klass if block_given?
     end
     
     def self.node(name, klass=generate_node_type(name))
-      nodes(name, nil, klass)
-    end
-    
-    def self.generate_node_type(name, klass=NagiosConfig::Node)
-      subclass = Class.new(klass)
-      const_set(name.to_s.capitalize, subclass)
-      subclass
+      define_method(name) do
+        nodes.find {|n| n.is_a?(klass)}
+      end
+      define_method("#{name}=") do |value|
+        remove_node(name)
+        add_node(value) if value
+      end
+      allow(klass)
+      yield klass if block_given?
     end
     
     def allow?(node)
