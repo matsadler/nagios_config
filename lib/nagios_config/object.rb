@@ -1,7 +1,7 @@
 module NagiosConfig
   class Object
     @@all = []
-    @@find_cache = {}
+    @@template_cache = {}
     attr_accessor :type, :own_variables, :objectspace, :parent
     
     def initialize(type, variables={}, objectspace=@@all)
@@ -18,23 +18,23 @@ module NagiosConfig
       instance
     end
     
-    def self.find(type, query, objectspace=@@all)
-      key = [type, query.sort, objectspace.object_id]
-      result = @@find_cache[key]
-      return result if result && result.objectspace == objectspace &&
-        query.inject(true) do |memo, (key, value)|
-          memo && result[key.to_sym] == value
-        end
+    def self.find_template(type, name, objectspace=@@all)
+      type = type.to_sym
+      name = name.to_s
+      key = [type, name, objectspace.object_id]
+      cached = @@template_cache[key]
       
-      @@find_cache[key] = objectspace.find do |obj|
-        obj.type == type && query.inject(true) do |memo, (key, value)|
-          memo && obj[key.to_sym] == value
+      if cached && cached.type == type && cached.name == name
+        cached
+      else
+        @@template_cache[key] = objectspace.find do |obj|
+          obj.type == type && obj.name == name
         end
       end
     end
     
     def self.clear_cache
-      @@find_cache.clear
+      @@template_cache.clear
     end
     
     def self.clear
@@ -50,7 +50,7 @@ module NagiosConfig
     def parent
       use = own_variables[:use]
       if use
-        parent = self.class.find(type, {:name => use}, objectspace)
+        parent = self.class.find_template(type, use, objectspace)
         raise ParentNotFound.new("can't use #{use}") unless parent
         parent
       end
