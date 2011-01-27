@@ -1,30 +1,46 @@
 module NagiosConfig
   class Object
     @@all = []
-    attr_accessor :type, :own_variables, :objectspace, :parent, :cache_parent
+    @@find_cache = {}
+    attr_accessor :type, :own_variables, :objectspace, :parent
     
-    def initialize(type, variables={}, objectspace=@@all, cache_parent=false)
+    def initialize(type, variables={}, objectspace=@@all)
       self.type = type.to_sym
       self.own_variables = Hash[variables.map {|k,v| [k.to_sym,v]}]
       self.objectspace = objectspace
-      self.cache_parent = cache_parent
     end
     
-    def self.from_node(node, objectspace=@@all, cache_parent=false)
-      instance = new(node.type.value, {}, objectspace, cache_parent)
+    def self.from_node(node, objectspace=@@all)
+      instance = new(node.type.value, {}, objectspace)
       node.variables.each do |variable|
         instance[variable.name.value] = variable.val.value
       end
       instance
     end
     
-    def self.of_type(type, objectspace=@@all)
-      type = type.to_sym
-      objectspace.select {|obj| obj.type == type}
+    def self.find(type, query, objectspace=@@all)
+      key = [type, query.sort, objectspace.object_id]
+      result = @@find_cache[key]
+      return result if result && result.objectspace == objectspace &&
+        query.inject(true) do |memo, (key, value)|
+          memo && result[key.to_sym] == value
+        end
+      
+      @@find_cache[key] = objectspace.find do |obj|
+        obj.type == type && query.inject(true) do |memo, (key, value)|
+          memo && obj[key.to_sym] == value
+        end
+      end
+    end
+    
+    def self.clear_cache
+      @@find_cache.clear
     end
     
     def self.clear
       objectspace.clear
+      clear_cache
+      nil
     end
     
     def self.objectspace
@@ -32,15 +48,10 @@ module NagiosConfig
     end
     
     def parent
-      return @parent if cache_parent && @parent
-      
       use = own_variables[:use]
       if use
-        parent = self.class.of_type(type, objectspace).find do |other|
-          other.own_variables[:name] == use
-        end
+        parent = self.class.find(type, {:name => use}, objectspace)
         raise ParentNotFound.new("can't use #{use}") unless parent
-        self.parent = parent if cache_parent
         parent
       end
     end
@@ -68,11 +79,6 @@ module NagiosConfig
       @objectspace.delete(self) if @objectspace
       value.push(self) if value
       @objectspace = value
-    end
-    
-    def cache_parent=(value)
-      @parent = nil unless value
-      @cache_parent = value
     end
     
     def inspect
