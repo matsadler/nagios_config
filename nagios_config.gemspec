@@ -8,5 +8,7 @@ Gem::Specification.new do |s|
   s.rdoc_options << "--main" << "README.rdoc" << "--charset" << "utf-8"
   s.extra_rdoc_files = ["README.rdoc"]
   s.author = "Matthew Sadler"
+  s.email = "mat@sourcetagsandcodes.com"
+  s.homepage = "http://github.com/matsadler/nagios_config"
   s.add_dependency("events", "~> 0.9.2")
 end
