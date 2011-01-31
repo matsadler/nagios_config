@@ -5,46 +5,50 @@ require 'events'
 
 module NagiosConfig
   class Parser
-    attr_accessor :scanner, :state, :in_define, :value_buffer
+    attr_accessor :scanner, :state
     include Events::Emitter
     
-    def initialize
+    NEWLINE = "\n".freeze
+    EQUALS = "=".freeze
+    OPEN_BRACE = "{".freeze
+    
+    def initialize(ignore_comments=false)
       @state = :body
-      self.scanner = StringScanner.new("")
-      self.value_buffer = ""
+      @scanner = StringScanner.new("")
+      @value_buffer = ""
+      @ignore_comments = ignore_comments
     end
     
     def parse(io)
       root = NagiosConfig::Config.new
-      current_define = nil
+      current = root
       current_variable = nil
       on(:comment) do |comment|
-        (current_define || root).add_node(NagiosConfig::Comment.new(comment))
-      end
+        current.add_node(NagiosConfig::Comment.new(comment))
+      end unless @ignore_comments
       on(:whitespace) do |whitespace|
-        (current_define || root).add_node(NagiosConfig::Whitespace.new(whitespace))
-      end
+        current.add_node(NagiosConfig::Whitespace.new(whitespace))
+      end unless @ignore_comments
       on(:trailing_comment) do |comment|
-        (current_define || root).nodes.last.add_node(NagiosConfig::TrailingComment.new(comment))
-      end
+        current.nodes.last.add_node(NagiosConfig::TrailingComment.new(comment))
+      end unless @ignore_comments
       on(:name) do |name|
         current_variable = NagiosConfig::Variable.new
         current_variable.add_node(NagiosConfig::Name.new(name))
-        (current_define || root).add_node(current_variable)
+        current.add_node(current_variable)
       end
       on(:value) do |value|
         current_variable.add_node(NagiosConfig::Value.new(value))
-        current_variable = nil
       end
       on(:begin_define) do
-        current_define = NagiosConfig::Define.new
-        root.add_node(current_define)
+        current = NagiosConfig::Define.new
+        root.add_node(current)
       end
       on(:type) do |type|
-        current_define.add_node(NagiosConfig::Type.new(type))
+        current.add_node(NagiosConfig::Type.new(type))
       end
       on(:finish_define) do
-        current_define = nil
+        current = root
       end
       stream_parse(io)
       root
@@ -58,10 +62,8 @@ module NagiosConfig
     end
     
     def <<(string)
-      scanner.string.replace(scanner.rest)
-      scanner.reset
-      scanner << string
-      self.state = send(state)
+      @scanner << string
+      @state = send(@state)
     end
     
     private
@@ -71,59 +73,61 @@ module NagiosConfig
     alias start body
     
     def empty_line
-      whitespace = scanner.scan(/[ \t]*\n/)
+      whitespace = @scanner.scan(/[ \t]*\n/)
       if whitespace
-        emit(:whitespace, whitespace)
-        in_define ? definition_body : body
-      elsif in_define && whitespace = scanner.scan(/[ \t]*(?=;)/) && trailing_comment
-        emit(:whitespace, whitespace)
+        emit(:whitespace, whitespace) unless @ignore_comments
+        @in_define ? definition_body : body
+      elsif @in_define && whitespace = @scanner.scan(/[ \t]*(?=;)/) && trailing_comment
+        emit(:whitespace, whitespace) unless @ignore_comments
         definition_body
       end
     end
     
     def leading_whitespace
-      if scanner.scan(/[ \t]+[^\s]/)
+      if @scanner.skip(/[ \t]+[^\s]/)
         raise ParseError.new("leading whitespace not allowed")
       end
     end
     
     def comment
-      comment = scanner.scan(/[ \t]*#.*(\n)/)
+      comment = @scanner.scan(/[ \t]*#[^\n]*\n/)
       if comment
-        comment.lstrip!
-        comment.slice!(0)
-        comment.chomp!("\n")
-        emit(:comment, comment)
-        in_define ? definition_body : body
-      elsif scanner.check(/#/)
+        if !@ignore_comments
+          comment.lstrip!
+          comment.slice!(0)
+          comment.chomp!(NEWLINE)
+          emit(:comment, comment)
+        end
+        @in_define ? definition_body : body
+      elsif @scanner.check(/#/)
         :comment
       end
     end
     
     def name
-      name = scanner.scan(/[^\s=]+=/)
+      name = @scanner.scan(/[^\s=]+=/)
       if name
-        name.chomp!("=")
+        name.chomp!(EQUALS)
         emit(:name, name)
         value
-      elsif scanner.scan(/.+\n/)
+      elsif @scanner.skip(/[^\n]+\n/)
         raise ParseError.new("expected variable definition")
-      elsif scanner.check(/[^\s]+/) && !scanner.check(/d(e(f(i(n(e?))?)?)?)?\Z/)
+      elsif @scanner.check(/[^\s]+/) && !@scanner.check(/d(e(f(i(n(e?))?)?)?)?\Z/)
         :name
       end
     end
     
     def value
-      value = scanner.scan(/.*\n/)
+      value = @scanner.scan(/[^\n]*\n/)
       if value
-        value = value_buffer + value
-        value.chomp!("\n")
+        value = @value_buffer + value
+        value.chomp!(NEWLINE)
         raise ParseError.new("value expected") if value.empty?
         emit(:value, value)
-        self.value_buffer = ""
+        @value_buffer = ""
         body
-      elsif value = scanner.scan(/.+/)
-        value_buffer << value
+      elsif value = @scanner.scan(/.+/)
+        @value_buffer << value
         :value
       else
         :value
@@ -131,22 +135,22 @@ module NagiosConfig
     end
     
     def definition
-      if scanner.skip(/define[ \t]/)
+      if @scanner.skip(/define[ \t]/)
         emit(:begin_define)
-        self.in_define = true
+        @in_define = true
         type
       end
     end
     
     def type
-      type = scanner.scan(/[^;{]+[ \t]*\{[ \t]*\n/)
+      type = @scanner.scan(/[^;{]+[ \t]*\{[ \t]*\n/)
       if type
         type.strip!
-        type.chomp!("{")
+        type.chomp!(OPEN_BRACE)
         type.strip!
         emit(:type, type)
         definition_body
-      elsif scanner.check(/([^;{]+[ \t]*(\{[ \t]*)?)?\Z/)
+      elsif @scanner.check(/([^;{]+[ \t]*(\{[ \t]*)?)?\Z/)
         :type
       else
         raise ParseError.new("type expected")
@@ -158,29 +162,29 @@ module NagiosConfig
     end
     
     def definition_name
-      name = scanner.scan(/[ \t]*[^\s;#]+[ \t]+/)
+      name = @scanner.scan(/[ \t]*[^\s;#]+[ \t]+/)
       if name
         name.strip!
         emit(:name, name)
         definition_value
-      elsif scanner.check(/[ \t]*[^\s#;}]+\Z/)
+      elsif @scanner.check(/[ \t]*[^\s#;}]+\Z/)
         :definition_name
-      elsif scanner.scan(/[ \t]*[^\s#;]+\n/)
+      elsif @scanner.skip(/[ \t]*[^\s#;]+\n/)
         raise ParseError.new("value expected")
       end
     end
     
     def definition_value
-      value = scanner.scan(/[^\n;#]*(?=(\n|;))/)
+      value = @scanner.scan(/[^\n;#]*(?=(\n|;))/)
       if value
-        value = value_buffer + value
+        value = @value_buffer + value
         value.strip!
         raise ParseError.new("value expected") if value.empty?
         emit(:value, value)
-        self.value_buffer = ""
+        @value_buffer = ""
         after_value
-      elsif value = scanner.scan(/[^\n;#]+/)
-        value_buffer << value
+      elsif value = @scanner.scan(/[^\n;#]+/)
+        @value_buffer << value
         :definition_value
       else
         :definition_value
@@ -188,7 +192,7 @@ module NagiosConfig
     end
     
     def after_value
-      if scanner.skip(/[ \t]*\n/) || trailing_comment
+      if @scanner.skip(/[ \t]*\n/) || trailing_comment
         definition_body
       else
         :after_value
@@ -196,18 +200,18 @@ module NagiosConfig
     end
     
     def finish_definition
-      if scanner.scan(/[ \t]*\}[ \t]*\n/)
+      if @scanner.skip(/[ \t]*\}[ \t]*\n/)
         emit(:finish_define)
-        self.in_define = false
+        @in_define = false
         body
       end
     end
     
     def trailing_comment
-      trailing_comment = scanner.scan(/[ \t]*;.*\n/)
-      if trailing_comment
+      trailing_comment = @scanner.scan(/[ \t]*;[^\n]*\n/)
+      if trailing_comment && !@ignore_comments
         trailing_comment.strip!
-        trailing_comment.chomp!("\n")
+        trailing_comment.chomp!(NEWLINE)
         trailing_comment.slice!(0)
         emit(:trailing_comment, trailing_comment)
       end
