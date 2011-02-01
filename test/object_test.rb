@@ -25,8 +25,8 @@ class ObjectTest < Test::Unit::TestCase
     obj[:address] = "192.0.32.10"
     obj[:contact_groups] = "example"
     
-    assert_equal("192.0.32.10", obj.address)
-    assert_equal("example", obj.contact_groups)
+    assert_equal("192.0.32.10", obj[:address])
+    assert_equal("example", obj[:contact_groups])
   end
   
   def test_get_attributes
