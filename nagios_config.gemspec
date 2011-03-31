@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "nagios_config"
-  s.version = "0.0.1"
+  s.version = "0.0.2"
   s.summary = "Nagios config parser and friends"
   s.description = "Read and write Nagios config files from Ruby"
   s.files = %W{lib}.map {|dir| Dir["#{dir}/**/*.rb"]}.flatten << "README.rdoc"
