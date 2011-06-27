@@ -6,7 +6,7 @@ module NagiosConfig
     
     def initialize(type, variables={}, objectspace=@@all)
       self.type = type.to_sym
-      self.own_variables = Hash[variables.map {|k,v| [k.to_sym,v]}]
+      self.own_variables = Hash[*variables.map {|k,v| [k.to_sym,v]}.flatten]
       self.objectspace = objectspace
     end
     

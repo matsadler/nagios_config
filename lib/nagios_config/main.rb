@@ -3,7 +3,7 @@ module NagiosConfig
     attr_accessor :variables, :objects
     
     def initialize(variables={}, objects=[])
-      self.variables = Hash[variables.map {|k,v| [k.to_sym,v]}]
+      self.variables = Hash[*variables.map {|k,v| [k.to_sym,v]}.flatten]
       self.objects = objects
     end
     
